@@ -7,7 +7,7 @@ use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
-;
+
 
 class CategoriesFixtures extends Fixture
 {
@@ -16,17 +16,23 @@ class CategoriesFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $parent = new Categories();
-        $parent->setName('Informatique');
-        $parent->setSlug($this->slugger->slug($parent->getName())->lower());
-        $manager->persist($parent);
+        $parent = $this->createCategory('Informatique', null, $manager);
 
+        $this->createCategory('Ordinateurs portables', $parent, $manager);
+        $this->createCategory('Ecrans', $parent, $manager);
+        $this->createCategory('Souris', $parent, $manager);
+
+        $manager->flush();
+    }
+
+    public function createCategory(string $name, Categories $parent = null, ObjectManager $manager)
+    {
         $category = new Categories();
-        $category->setName('Ordinateurs portables');
+        $category->setName($name);
         $category->setSlug($this->slugger->slug($category->getName())->lower());
         $category->setParent($parent);
         $manager->persist($category);
 
-        $manager->flush();
+        return $category;
     }
 }
