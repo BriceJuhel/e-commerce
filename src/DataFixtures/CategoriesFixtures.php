@@ -9,7 +9,7 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 
 ;
 
-class CategoriesFictures extends Fixture
+class CategoriesFixtures extends Fixture
 {
 
     public function __construct(private SluggerInterface $slugger){}
@@ -17,14 +17,14 @@ class CategoriesFictures extends Fixture
     public function load(ObjectManager $manager): void
     {
         $parent = new Categories();
-        $parent -> setName('Informatique');
-        $parent -> setSlug('informatique');
+        $parent->setName('Informatique');
+        $parent->setSlug($this->slugger->slug($parent->getName())->lower());
         $manager->persist($parent);
 
         $category = new Categories();
-        $category -> setName('Ordinateurs');
-        $category -> setSlug('ordinateurs');
-        $category -> setParent($parent);
+        $category->setName('Ordinateurs portables');
+        $category->setSlug($this->slugger->slug($category->getName())->lower());
+        $category->setParent($parent);
         $manager->persist($category);
 
         $manager->flush();
