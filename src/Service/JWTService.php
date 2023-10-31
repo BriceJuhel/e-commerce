@@ -47,4 +47,61 @@ class JWTService
 
         return $jwt;
     }
+
+    //On vérifie que le token est valide (correctement formé)
+
+    public function isValid(string $token): bool
+    {
+        return preg_match(
+            '/^[a-zA-Z0-9\-\_\=]+\.[a-zA-Z0-9\-\_\=]+\.[a-zA-Z0-9\-\_\=]+$/',
+            $token
+        ) === 1;
+    }
+
+    // On récupère le Payload
+    public function getPayload(string $token): array
+    {
+        // On démonte le token
+        $array = explode('.', $token);
+
+        // On décode le Payload
+        $payload = json_decode(base64_decode($array[1]), true);
+
+        return $payload;
+    }
+
+    // On récupère le Header
+    public function getHeader(string $token): array
+    {
+        // On démonte le token
+        $array = explode('.', $token);
+
+        // On décode le Header
+        $header = json_decode(base64_decode($array[0]), true);
+
+        return $header;
+    }
+
+    // On vérifie si le token a expiré
+    public function isExpired(string $token): bool
+    {
+        $payload = $this->getPayload($token);
+
+        $now = new DateTimeImmutable();
+
+        return $payload['exp'] < $now->getTimestamp();
+    }
+
+    // On vérifie la signature du Token
+    public function check(string $token, string $secret)
+    {
+        // On récupère le header et le payload
+        $header = $this->getHeader($token);
+        $payload = $this->getPayload($token);
+
+        // On régénère un token
+        $verifToken = $this->generate($header, $payload, $secret, 0);
+
+        return $token === $verifToken;
+    }
 }
