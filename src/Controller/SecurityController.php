@@ -4,12 +4,14 @@ namespace App\Controller;
 
 use App\Form\ResetPasswordRequestFormType;
 use App\Repository\UsersRepository;
+use App\Service\SendMailService;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\TokenGenerator\TokenGeneratorInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
@@ -40,7 +42,7 @@ class SecurityController extends AbstractController
     }
 
     #[Route(path: '/oubli-pass', name: 'forgotten_password')]
-    public function forgottenPassword(Request $request, UsersRepository $usersRepository, TokenGeneratorInterface $tokenGeneratorInterface, EntityManagerInterface $entityManager): Response
+    public function forgottenPassword(Request $request, UsersRepository $usersRepository, TokenGeneratorInterface $tokenGeneratorInterface, EntityManagerInterface $entityManager, SendMailService $mail): Response
     {
         $form = $this->createForm(ResetPasswordRequestFormType::class);
 
@@ -59,6 +61,23 @@ class SecurityController extends AbstractController
                 $entityManager->flush();
 
                 // On génère un lien de réinitialisation du mot de passe
+                $url = $this->generateUrl('reset_pass', ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+                
+                // On créé les données du mail
+                $context = compact('url', 'user');
+
+                //Envoi du mail
+                $mail->send(
+                    'no-reply@e-commerce.fr',
+                    $user->getEmail(),
+                    'Réinitialisation de mot de passe',
+                    'password_reset',
+                    $context
+                );
+
+                $this->addFlash('success', 'Email envoyé avec succès');
+                return $this->redirectToRoute('app_login');
+
             }
             //$user est null
             $this->addFlash('danger', 'Un problème est survenu');
@@ -70,4 +89,11 @@ class SecurityController extends AbstractController
             'requestPassForm' => $form->createView()
         ]);
     }
+
+    #[Route(path: '/oubli-pass/{token}', name: 'reset_pass')]
+    public function resetPass(): Response
+    {
+
+    }
+
 }
