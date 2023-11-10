@@ -3,9 +3,14 @@
 namespace App\Controller;
 
 use App\Form\ResetPasswordRequestFormType;
+use App\Repository\UsersRepository;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Csrf\TokenGenerator\TokenGeneratorInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
@@ -35,9 +40,31 @@ class SecurityController extends AbstractController
     }
 
     #[Route(path: '/oubli-pass', name: 'forgotten_password')]
-    public function forgottenPassword(): Response
+    public function forgottenPassword(Request $request, UsersRepository $usersRepository, TokenGeneratorInterface $tokenGeneratorInterface, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(ResetPasswordRequestFormType::class);
+
+        $form->handleRequest($request);
+
+        if($form->isSubmitted() && $form->isValid()){
+            //On va chercher l'utilisateur par son email
+            $user = $usersRepository->findOneByEmail($form->get('email')->getData());
+
+            //On vérifie si on a un utilisateur
+            if($user){
+                // On génère un token de réinitialisation
+                $token = $tokenGeneratorInterface->generateToken();
+                $user->setResetToken($token);
+                $entityManager->persist($user);
+                $entityManager->flush();
+
+                // On génère un lien de réinitialisation du mot de passe
+            }
+            //$user est null
+            $this->addFlash('danger', 'Un problème est survenu');
+            return $this->redirectToRoute('app_login');
+        }
+
 
         return $this->render('security/reset_password_request.html.twig', [
             'requestPassForm' => $form->createView()
